@@ -1,0 +1,45 @@
+name: Publish Seoul trip to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: read
+
+concurrency:
+  group: seoul-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - run: unzip -q seoul-trip-source.zip -d source
+      - run: npm install --global pnpm@11.25.0
+      - name: Build and check Seoul trip
+        working-directory: source/seoul
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm check
+          pnpm build
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: source/seoul/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - id: publish
+        uses: actions/deploy-pages@v4
